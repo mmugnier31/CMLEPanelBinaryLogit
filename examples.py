@@ -10,8 +10,12 @@ Examples code for Conditional Maximum Likelihood Estimation (C.M.L.E.) in the bi
 model with unobserved heterogeneity.
 """
 
+# Uncomment to set the right path to CMLE.py
+#import os
+#os.chdir("setpath") 
+
 import numpy as np
-from CMLE import BinLogitCMLE()
+from CMLE import BinLogitCMLE
 
 # Logistic model : T = 3, standard normal fixed effect and two random binary covariates
 def err_cdf(x):
