@@ -122,7 +122,7 @@ class BinLogitCMLE():
                                   np.exp(R[n_i].dot(Xprime_beta))]).T, axis=0)
             #print(b_i)
             hess = (np.outer(b_i, b_i) * omega_i ** 2 - 
-                    np.sum([np.outer(elem, elem) for idx, elem in enumerate(np.dot(R[n_i], W[i]))]) 
+                    np.sum([np.outer(elem, elem) for idx, elem in enumerate(np.dot(R[n_i], A[i]))]) 
                     * omega_i)
         else:
             omega_i = (1. / (np.sum(np.exp(R[n_i].dot(Xprime_beta)))))
@@ -131,7 +131,7 @@ class BinLogitCMLE():
                                   np.exp(R[n_i][0].dot(Xprime_beta))]).T, axis=0)
             #print(b_i)
             hess = (np.outer(b_i, b_i) * omega_i ** 2 - 
-                    np.sum([np.outer(elem, elem) for idx, elem in enumerate(np.dot(R[n_i][0], W[i]))]) 
+                    np.sum([np.outer(elem, elem) for idx, elem in enumerate(np.dot(R[n_i][0], A[i]))]) 
                     * omega_i)
             #hess = np.ndarray(shape=(K,K), buffer=np.zeros(K**2))
         return hess
