@@ -17,6 +17,8 @@ model with unobserved heterogeneity.
 import numpy as np
 from CMLE import BinLogitCMLE
 
+from matplotlib import pyplot as plt
+
 # Logistic model : T = 3, standard normal fixed effect and two random binary covariates
 def err_cdf(x):
     return 1 / (1 + np.exp(-x))
