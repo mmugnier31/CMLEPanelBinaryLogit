@@ -1,7 +1,4 @@
-```tex and
-```rawtex
-
-# CMLEBinaryLogit
+CMLEBinaryLogit
 
 The reader can refer to Woolridge (Section 15.8, 15.8.3) but we still put here some practical key features of the CMLE in the context of binary panel model. The key is that by assuming a logistic distribution of the error term we get that $n_i := \sum_{i=1}^T y_{it}$ is a sufficient statistics for estimating $\beta_0$ in the model :
 \begin{align}
