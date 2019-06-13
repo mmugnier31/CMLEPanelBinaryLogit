@@ -209,10 +209,11 @@ class BinLogitCMLE():
      """Performs the LR test of the global null.
      ----------
      Outputs : LR statistics, p-value
+     """
         lu = self.objective(self.A, self.b, bet_hat)
         lr = self.objective(self.A, self.b, np.zeros(self.K))
         ratio = 2 *self.n * (lu - lr)
         pval = stats.chi2.sf(ratio, self.K)
         if pval<lvl:
-             print("H0 : \beta_j =0 \forall j is rejected at level : ", lvl)
+            print("H0 : \beta_j =0 \forall j is rejected at level : ", lvl)
         return ratio, pval
