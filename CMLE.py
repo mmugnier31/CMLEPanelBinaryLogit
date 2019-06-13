@@ -16,6 +16,7 @@ References
 """
 
 import numpy as np
+from scipy import stats
 from sympy.utilities.iterables import multiset_permutations
 from scipy.special import comb
 from scipy.optimize import fmin_l_bfgs_b
@@ -204,7 +205,14 @@ class BinLogitCMLE():
                 avar += - self.comp_hessian_i(i, beta) # Fix the minus -> get negative variance
         return np.linalg.inv(avar)
     
-    def lr_nulltest(self, bet_hat):
+    def lr_nulltest(self, bet_hat, lvl=0.05):
+     """Performs the LR test of the global null.
+     ----------
+     Outputs : LR statistics, p-value
         lu = self.objective(self.A, self.b, bet_hat)
         lr = self.objective(self.A, self.b, np.zeros(self.K))
-        return 2 * (lu - lr)
+        ratio = 2 *self.n * (lu - lr)
+        pval = stats.chi2.sf(ratio, self.K)
+        if pval<lvl:
+             print("H0 : \beta_j =0 \forall j is rejected at level : ", lvl)
+        return ratio, pval
