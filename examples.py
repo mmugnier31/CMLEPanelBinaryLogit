@@ -15,11 +15,12 @@ from CMLE import BinLogitCMLE
 np.random.seed(12)
 
 def err_cdf(x):
-    '''Logistic model : T = 3, standard normal fixed effect and one random 
-    binary covariate.'''
+    '''Logistic distribution cdf.'''
     return 1 / (1 + np.exp(-x))
 
 def simulate_onebinvar(n, T, beta_0):
+    '''Simulate from the panel fixed effect logistic model with T = 3,
+    standard normal fixed effect and one random binary covariate.'''
     K = 1
     W = np.ndarray(shape=(n, T, K)) # explanatory variables
     for row in range(n):
