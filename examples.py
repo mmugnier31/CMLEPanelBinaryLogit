@@ -45,7 +45,7 @@ plt.plot([model.objective(elem, model.A, model.b) for elem in beta_list])
 plt.show()
 print("CMLE estimator (Raphson-Newton with constant step) : %s" % beta_min) # convergence is OK but slow
 
-# Run CMLE with constant step
+# Run CMLE with Hessian step
 beta_min, beta_list = model.fit(beta_init=np.zeros(1), n_iter=100, step=0.1, epsilon = 1e-10, hessian=True, BFGS=False)
 plt.plot([model.objective(elem, model.A, model.b) for elem in beta_list])
 plt.show()
