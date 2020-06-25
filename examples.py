@@ -32,9 +32,12 @@ def simulate_onebinvar(n, T, beta_0):
         Y[i,:] = np.array([float(np.random.binomial(1, err_cdf(np.dot(W[i,j], beta_0) + fe))) for j in range(3)])
     return W, Y
 
-W, Y = simulate_onebinvar(10000, 3, np.array([1.]))
-model = BinLogitCMLE(A= W, b = Y)
-
+# Simulate data from the model
+n = 10000
+T = 3
+beta_0 = np.array([1.])
+W, Y = simulate_onebinvar(n, T, beta_0)
+model = BinLogitCMLE(A=W, b=Y)
 
 # Run CMLE with constant step
 beta_min, beta_list = model.fit(beta_init=np.zeros(1), n_iter=100, step=0.1, epsilon = 1e-10, hessian=False, BFGS=False)
