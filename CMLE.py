@@ -4,7 +4,7 @@
 
  Paper : Identification W/O Logit Errors - Simulations 
  Author : Martin MUGNIER
- Version : 25/06/2020
+ Version : 04/09/2020
 
 
  This code implements the Conditional Maximum Likelihood Estimator (C.M.L.E.) 
@@ -17,6 +17,50 @@
 ----------
  Woolridge, "Econometric Analysis of Cross-Section and Panel Data" (Chap 15.8.3).
  
+ Example :
+----------
+np.random.seed(12)
+from matplotlib import pyplot as plt
+
+def err_cdf(x):
+    '''Logistic model : T = 3, standard normal fixed effect and one random 
+    binary covariate.'''
+    return 1 / (1 + np.exp(-x))
+
+def simulate_onebinvar(n, T, beta_0):
+    K = 1
+    W = np.ndarray(shape=(n, T, K)) # explanatory variables
+    for row in range(n):
+        for period in range(T):
+            W[row, period] = np.random.binomial(1, 0.5, size=K)
+    Y = np.ndarray(shape=(n,3)) # outcome variable
+    for i in range(n):
+        fe = np.random.normal(0,1)
+        Y[i,:] = np.array([float(np.random.binomial(1, err_cdf(np.dot(W[i,j], beta_0) + fe))) for j in range(3)])
+    return W, Y
+
+W, Y = simulate_onebinvar(10000, 3, np.array([1.]))
+model = BinLogitCMLE(A= W, b = Y)
+
+
+# Run CMLE with constant step
+beta_min, beta_list = model.fit(beta_init=np.zeros(1), n_iter=100, step=0.1, epsilon = 1e-10, hessian=False, BFGS=False)
+plt.plot([model.objective(elem, model.A, model.b) for elem in beta_list])
+plt.show()
+print("CMLE estimator (Raphson-Newton with constant step) : %s" % beta_min) # convergence is OK but slow
+
+# Run CMLE with constant step
+beta_min, beta_list = model.fit(beta_init=np.zeros(1), n_iter=100, step=0.1, epsilon = 1e-10, hessian=True, BFGS=False)
+plt.plot([model.objective(elem, model.A, model.b) for elem in beta_list])
+plt.show()
+print("CMLE estimator (Raphson-Newton with hessian step) : %s" % beta_min) # convergence in one step
+
+# Run CMLE with L-BFGS-B
+beta_min, beta_list = model.fit(beta_init=np.zeros(1), n_iter=100, step=0.1, epsilon = 1e-10, hessian=False)
+plt.plot([model.objective(elem, model.A, model.b) for elem in beta_list])
+plt.show()
+print("CMLE estimator (L-BFGS-B) : %s" % beta_min) # convergence is faster
+
 """
 
 import numpy as np
@@ -49,7 +93,7 @@ class BinLogitCMLE():
         else:
             self.n, self.T, self.K = A.shape
         
-        self.R = self.compute_perm()   
+        self.R = self.compute_perm()
         
     def compute_perm(self):
         """
@@ -79,10 +123,8 @@ class BinLogitCMLE():
         R = self.R
         Xprime_beta = A[i].dot(beta)
         n_i = int(np.sum(b[i]))
-        res = 0
-        if((n_i!=0) & (n_i!=self.T)):
-            omega_i = (1. / (np.sum(np.exp(R[n_i].dot(Xprime_beta)), axis=0)))
-            res = np.log(np.exp(np.dot(b[i], Xprime_beta)) * omega_i)
+        omega_i = np.sum(np.exp(R[n_i].dot(Xprime_beta)), axis=0)
+        res = np.dot(b[i], Xprime_beta) - np.log(omega_i)
         return res
     
     def objective(self, beta, A, b):
@@ -115,17 +157,13 @@ class BinLogitCMLE():
         R = self.R
         n_i = int(np.sum(b[i]))
         Xprime_beta = A[i].dot(beta)
-        if((n_i!=0) & (n_i!=self.T)):
+        if ((n_i!=0) & (n_i!=self.T)):
             omega_i = (1. / (np.sum(np.exp(R[n_i].dot(Xprime_beta)))))
             g = (np.dot(b[i], A[i]) - np.sum(np.dot(R[n_i], A[i]) * 
                         np.tile(np.exp(R[n_i].dot(Xprime_beta)), 
                                 (self.K, 1)).T, axis=0) * omega_i)
-        else: # case where no matrix but a unique vector in R[n_i]
-            omega_i = (1. / (np.sum(np.exp(R[n_i][0].dot(Xprime_beta)))))
-            #print(omega_i)
-            g = (np.dot(b[i], A[i]) - np.sum(np.dot(R[n_i][0], A[i]) * 
-                        np.tile(np.exp(R[n_i][0].dot(Xprime_beta)), 
-                                (self.K, 1)).T[0], axis=0) * omega_i)
+        else: 
+            g = np.zeros(self.K)
         return g
        
     def comp_hessian_i(self, i, beta):
@@ -137,21 +175,15 @@ class BinLogitCMLE():
         R = self.R
         n_i = int(np.sum(b[i]))
         Xprime_beta = A[i].dot(beta)
-        if((n_i!=0) & (n_i!=self.T)):
+        if ((n_i!=0) & (n_i!=self.T)):
             omega_i = (1. / (np.sum(np.exp(R[n_i].dot(Xprime_beta)))))
             b_i = np.sum(np.dot(R[n_i], A[i]) * 
                         np.tile(np.exp(R[n_i].dot(Xprime_beta)), (self.K, 1)).T, axis=0)
             hess = (np.outer(b_i, b_i) * omega_i ** 2 - 
-                    np.sum([np.outer(elem, elem) for idx, elem in enumerate(np.dot(R[n_i], A[i]))]) 
+                    np.sum([np.outer(elem, elem) * np.exp(R[n_i].dot(Xprime_beta))[idx] for idx, elem in enumerate(np.dot(R[n_i], A[i]))]) 
                     * omega_i)
         else:
-            omega_i = (1. / (np.sum(np.exp(R[n_i].dot(Xprime_beta)))))
-            b_i = np.sum(np.dot(R[n_i][0], A[i]) * 
-                        np.tile(np.exp(R[n_i][0].dot(Xprime_beta)), (self.K, 1)).T[0], axis=0)
-            #print(b_i)
-            hess = (np.outer(b_i, b_i) * omega_i ** 2 - 
-                    np.sum([np.outer(elem, elem) for idx, elem in enumerate(np.dot(R[n_i][0], A[i]))]) 
-                    * omega_i)
+           hess= np.zeros((self.K, self.K))
         return hess
 
     def comp_gradient(self, beta, A, b):
@@ -168,15 +200,26 @@ class BinLogitCMLE():
         """
         hess = np.ndarray(shape=(self.K,self.K), buffer=np.zeros(self.K**2))
         for i in range(self.n):
-            hess += self.comp_hessian_i(i, beta)
+            hess = hess + self.comp_hessian_i(i, beta)
         return hess / self.n
 
-    def fit(self, beta_init, n_iter, step=0.01, epsilon=1e-10, hessian=False, verbose=True, BFGS=True):
+    def fit(self, beta_init, n_iter=1000, step=0.01, tol=1e-6, epsilon=1e-10, hessian=False, verbose=True, BFGS=True):
+        '''Fit the conditional logit using either BFGS algorithm or 
+        the Newton-Raphson algorithm (with or without an Hessian step).
+        '''
         beta = beta_init.copy()
         beta_list = [beta_init]
         if BFGS:
             beta, f_min, _ = fmin_l_bfgs_b(self.loss, beta_init, self.loss_grad, args=(self.A, self.b), pgtol=1e-6, factr=1e-30)
-        elif not hessian:
+        elif hessian:
+            while True:
+                beta_t = beta - np.linalg.inv(self.comp_hessian(beta)).dot(self.comp_gradient(beta, self.A, self.b))
+                t = abs(beta_t - beta)
+                if t < tol:
+                    break
+                beta = beta_t
+                #beta_list.append(beta)
+        else:
             stop = True
             for t in range(n_iter):
                 if stop:
@@ -185,16 +228,6 @@ class BinLogitCMLE():
                         print("Iteration %s completed" % t)
                     beta_list.append(beta)
                     if self.objective(beta, self.A, self.b, ) -self.objective( beta_list[t], self.A, self.b,) < epsilon:
-                        stop = False
-        else:
-            stop = True
-            for t in range(n_iter):
-                if stop:
-                    beta = beta - np.linalg.inv(self.comp_hessian(beta)).dot(self.comp_gradient(beta, self.A, self.b))
-                    if verbose:
-                        print("Iteration %s completed" % t)
-                    beta_list.append(beta)
-                    if self.objective(beta, self.A, self.b) -self.objective(beta_list[t], self.A, self.b) < epsilon:
                         stop = False
         return beta, beta_list
     
